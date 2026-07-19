@@ -1,0 +1,4 @@
+cloud: azure
+
+config:
+  responseMessage: "Hello from the Azure development environment"

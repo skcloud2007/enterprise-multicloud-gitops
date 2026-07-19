@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: registry.gitlab.com/skcloud2007/multicloud-demo-app
   pullPolicy: IfNotPresent
-  tag: "f52de391"
+  tag: "d13d5e27"
 
 imagePullSecrets:
   - name: gitlab-registry

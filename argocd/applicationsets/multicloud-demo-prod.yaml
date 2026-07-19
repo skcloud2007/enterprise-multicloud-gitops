@@ -13,10 +13,13 @@ spec:
     - list:
         elements:
           - cloud: aws
+            cloudDisplay: Amazon Web Services (EKS)
             cluster: eks-prod
           - cloud: azure
+            cloudDisplay: Microsoft Azure (AKS)
             cluster: aks-prod
           - cloud: gcp
+            cloudDisplay: Google Cloud (GKE)
             cluster: gke-prod
   template:
     metadata:
@@ -42,6 +45,13 @@ spec:
       destination:
         name: '{{ .cluster }}'
         namespace: prod-demo-app
+      info:
+        - name: Cloud Provider
+          value: '{{ .cloudDisplay }}'
+        - name: Environment
+          value: Production
+        - name: Target Cluster
+          value: '{{ .cluster }}'
       syncPolicy:
         managedNamespaceMetadata:
           labels:

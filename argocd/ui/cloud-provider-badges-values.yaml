@@ -5,7 +5,7 @@ configs:
   styles: |
     /*
      * Cloud provider badges for Argo CD Application tiles.
-     * Applies to both development and production application names.
+     * JavaScript adds data-cloud-provider based on the Application name.
      */
 
     .applications-list__entry {
@@ -30,20 +30,31 @@ configs:
       pointer-events: none;
     }
 
-    .applications-list__entry:has(a[href*="eks-"])::after {
+    .applications-list__entry[data-cloud-provider="aws"]::after {
       content: "AWS";
       color: #232f3e;
       background: #ff9900;
     }
 
-    .applications-list__entry:has(a[href*="aks-"])::after {
+    .applications-list__entry[data-cloud-provider="azure"]::after {
       content: "AZURE";
       color: #ffffff;
       background: #0078d4;
     }
 
-    .applications-list__entry:has(a[href*="gke-"])::after {
+    .applications-list__entry[data-cloud-provider="gcp"]::after {
       content: "GCP";
       color: #ffffff;
       background: #4285f4;
     }
+
+server:
+  volumes:
+    - name: cloud-provider-extension
+      configMap:
+        name: argocd-cloud-provider-extension
+
+  volumeMounts:
+    - name: cloud-provider-extension
+      mountPath: /tmp/extensions/cloud-provider-badges
+      readOnly: true

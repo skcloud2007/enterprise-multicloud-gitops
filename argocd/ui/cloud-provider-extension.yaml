@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cloud-provider-extension
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cloud-provider-extension
+    app.kubernetes.io/part-of: argocd
+data:
+  extension-cloud-provider-badges.js: |
+    (() => {
+      "use strict";
+
+      const cardSelector = ".applications-list__entry";
+      const attributeName = "data-cloud-provider";
+
+      function applicationName(card) {
+        const text = card.textContent || "";
+        const projectPosition = text.indexOf("Project:");
+
+        return (
+          projectPosition >= 0
+            ? text.slice(0, projectPosition)
+            : text
+        ).trim();
+      }
+
+      function cloudProvider(name) {
+        if (name.startsWith("eks-")) {
+          return "aws";
+        }
+
+        if (name.startsWith("aks-")) {
+          return "azure";
+        }
+
+        if (name.startsWith("gke-")) {
+          return "gcp";
+        }
+
+        return "";
+      }
+
+      function updateCloudBadges() {
+        document.querySelectorAll(cardSelector).forEach(card => {
+          const provider = cloudProvider(applicationName(card));
+
+          if (provider) {
+            card.setAttribute(attributeName, provider);
+          } else {
+            card.removeAttribute(attributeName);
+          }
+        });
+      }
+
+      function start() {
+        updateCloudBadges();
+
+        const observer = new MutationObserver(updateCloudBadges);
+
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+          characterData: true
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", start, {
+          once: true
+        });
+      } else {
+        start();
+      }
+    })();

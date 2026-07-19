@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: multicloud-dev
+  namespace: argocd
+  labels:
+    platform.local/environment: dev
+spec:
+  description: Development workloads across EKS, AKS, and GKE
+  sourceRepos:
+    - git@gitlab.com:skcloud2007/multicloud-helm-charts.git
+    - git@gitlab.com:skcloud2007/multicloud-gitops-dev.git
+  destinations:
+    - name: eks-dev
+      namespace: dev-*
+    - name: aks-dev
+      namespace: dev-*
+    - name: gke-dev
+      namespace: dev-*
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  orphanedResources:
+    warn: true
+    ignore:
+      - group: ""
+        kind: Secret
+        name: gitlab-registry

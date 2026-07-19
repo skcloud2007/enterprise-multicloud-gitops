@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: multicloud-prod
+  namespace: argocd
+  labels:
+    platform.local/environment: prod
+spec:
+  description: Production workloads across EKS, AKS, and GKE
+  sourceRepos:
+    - git@gitlab.com:skcloud2007/multicloud-helm-charts.git
+    - git@gitlab.com:skcloud2007/multicloud-gitops-prod.git
+  destinations:
+    - name: eks-prod
+      namespace: prod-*
+    - name: aks-prod
+      namespace: prod-*
+    - name: gke-prod
+      namespace: prod-*
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  orphanedResources:
+    warn: true
+    ignore:
+      - group: ""
+        kind: Secret
+        name: gitlab-registry

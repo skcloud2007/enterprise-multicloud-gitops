@@ -1,0 +1,69 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: multicloud-demo-prod
+  namespace: argocd
+  labels:
+    platform.local/environment: prod
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - list:
+        elements:
+          - cloud: aws
+            cloudDisplay: Amazon Web Services (EKS)
+            cluster: eks-prod
+          - cloud: azure
+            cloudDisplay: Microsoft Azure (AKS)
+            cluster: aks-prod
+          - cloud: gcp
+            cloudDisplay: Google Cloud (GKE)
+            cluster: gke-prod
+  template:
+    metadata:
+      name: '{{ .cluster }}-demo-app'
+      labels:
+        platform.local/application: multicloud-demo-app
+        platform.local/environment: prod
+        platform.local/cloud: '{{ .cloud }}'
+    spec:
+      project: multicloud-prod
+      sources:
+        - repoURL: git@gitlab.com:skcloud2007/multicloud-helm-charts.git
+          targetRevision: main
+          path: charts/multicloud-demo-app
+          helm:
+            releaseName: demo-app
+            valueFiles:
+              - $values/apps/multicloud-demo-app/values/common.yaml
+              - '$values/apps/multicloud-demo-app/values/{{ .cloud }}.yaml'
+        - repoURL: git@gitlab.com:skcloud2007/multicloud-gitops-prod.git
+          targetRevision: main
+          ref: values
+      destination:
+        name: '{{ .cluster }}'
+        namespace: prod-demo-app
+      info:
+        - name: Cloud Provider
+          value: '{{ .cloudDisplay }}'
+        - name: Environment
+          value: Production
+        - name: Target Cluster
+          value: '{{ .cluster }}'
+      syncPolicy:
+        managedNamespaceMetadata:
+          labels:
+            platform.local/environment: prod
+            platform.local/managed-by: argocd
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+          - PruneLast=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 3m

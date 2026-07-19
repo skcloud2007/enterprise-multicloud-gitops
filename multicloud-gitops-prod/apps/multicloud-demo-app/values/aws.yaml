@@ -1,0 +1,4 @@
+cloud: aws
+
+config:
+  responseMessage: "Hello from the AWS production environment"

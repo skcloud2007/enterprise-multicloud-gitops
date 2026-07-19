@@ -1,0 +1,49 @@
+configs:
+  cm:
+    ui.cssurl: "./custom/custom.styles.css"
+
+  styles: |
+    /*
+     * Cloud provider badges for Argo CD Application tiles.
+     * Applies to both development and production application names.
+     */
+
+    .applications-list__entry {
+      position: relative;
+    }
+
+    .applications-list__entry::after {
+      position: absolute;
+      top: 15px;
+      right: 54px;
+      z-index: 2;
+      min-width: 44px;
+      padding: 4px 9px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 999px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 14px;
+      letter-spacing: 0.04em;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .applications-list__entry:has(a[href*="eks-"])::after {
+      content: "AWS";
+      color: #232f3e;
+      background: #ff9900;
+    }
+
+    .applications-list__entry:has(a[href*="aks-"])::after {
+      content: "AZURE";
+      color: #ffffff;
+      background: #0078d4;
+    }
+
+    .applications-list__entry:has(a[href*="gke-"])::after {
+      content: "GCP";
+      color: #ffffff;
+      background: #4285f4;
+    }

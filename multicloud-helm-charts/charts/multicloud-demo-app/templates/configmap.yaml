@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "multicloud-demo-app.fullname" . }}-config
+  labels:
+    {{- include "multicloud-demo-app.labels" . | nindent 4 }}
+data:
+  APP_ENVIRONMENT: {{ .Values.environment | quote }}
+  APP_CLOUD: {{ .Values.cloud | quote }}
+  RESPONSE_MESSAGE: {{ .Values.config.responseMessage | quote }}

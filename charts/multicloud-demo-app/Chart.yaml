@@ -1,0 +1,9 @@
+apiVersion: v2
+name: multicloud-demo-app
+description: Secure demonstration API for the enterprise multi-cloud platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.30.0-0"
+maintainers:
+  - name: skcloud2007

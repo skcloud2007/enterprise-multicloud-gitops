@@ -1,0 +1,4 @@
+{{- $name := include "multicloud-demo-app.fullname" . -}}
+Run the following command to access the application locally:
+
+  kubectl --namespace {{ .Release.Namespace }} port-forward service/{{ $name }} 8081:{{ .Values.service.port }}

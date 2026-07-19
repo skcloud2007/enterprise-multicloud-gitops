@@ -25,3 +25,7 @@ spec:
       kind: "*"
   orphanedResources:
     warn: true
+    ignore:
+      - group: ""
+        kind: Secret
+        name: gitlab-registry

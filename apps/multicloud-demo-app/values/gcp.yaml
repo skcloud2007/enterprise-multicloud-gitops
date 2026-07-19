@@ -1,0 +1,4 @@
+cloud: gcp
+
+config:
+  responseMessage: "Hello from the GCP development environment"

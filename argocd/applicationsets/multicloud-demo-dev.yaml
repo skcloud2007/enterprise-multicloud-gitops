@@ -1,0 +1,63 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: multicloud-demo-dev
+  namespace: argocd
+  labels:
+    platform.local/environment: dev
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - list:
+        elements:
+          - cloud: aws
+            cluster: eks-dev
+          - cloud: azure
+            cluster: aks-dev
+          - cloud: gcp
+            cluster: gke-dev
+  template:
+    metadata:
+      name: '{{ .cluster }}-demo-app'
+      labels:
+        platform.local/application: multicloud-demo-app
+        platform.local/environment: dev
+        platform.local/cloud: '{{ .cloud }}'
+    spec:
+      project: multicloud-dev
+      sources:
+        - repoURL: git@gitlab.com:skcloud2007/multicloud-helm-charts.git
+          targetRevision: main
+          path: charts/multicloud-demo-app
+          helm:
+            releaseName: demo-app
+            valueFiles:
+              - $values/apps/multicloud-demo-app/values/common.yaml
+              - '$values/apps/multicloud-demo-app/values/{{ .cloud }}.yaml'
+        - repoURL: git@gitlab.com:skcloud2007/multicloud-gitops-dev.git
+          targetRevision: main
+          ref: values
+      destination:
+        name: '{{ .cluster }}'
+        namespace: dev-demo-app
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        managedNamespaceMetadata:
+          labels:
+            platform.local/environment: dev
+            platform.local/managed-by: argocd
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+          - PruneLast=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

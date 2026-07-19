@@ -1,0 +1,7 @@
+.git
+.gitignore
+.gitlab-ci.yml
+README.md
+bin
+coverage.out
+.DS_Store

@@ -1,0 +1,76 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_TAG'
+
+stages:
+  - verify
+  - package
+
+default:
+  interruptible: true
+
+go-verify:
+  stage: verify
+  image: golang:1.26-alpine
+  script:
+    - test -z "$(gofmt -l .)" || { gofmt -d .; exit 1; }
+    - go vet ./...
+    - go test -coverprofile=coverage.out ./...
+    - go tool cover -func=coverage.out
+  coverage: '/total:\s+\(statements\)\s+([0-9.]+%)/'
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - coverage.out
+
+container-image:
+  stage: package
+  image: docker:29-cli
+  services:
+    - name: docker:29-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: /certs
+    DOCKER_CERT_PATH: /certs/client
+    DOCKER_TLS_VERIFY: "1"
+  before_script:
+    - docker info
+    - docker buildx version
+    - docker context create multicloud-dind --docker "host=${DOCKER_HOST},ca=${DOCKER_CERT_PATH}/ca.pem,cert=${DOCKER_CERT_PATH}/cert.pem,key=${DOCKER_CERT_PATH}/key.pem"
+    - docker buildx create --name multicloud-builder --driver docker-container --use multicloud-dind
+    - docker buildx inspect --bootstrap
+    - echo "$CI_REGISTRY_PASSWORD" | docker login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - |
+      set -eu
+      SHA_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        docker buildx build \
+          --pull \
+          --platform linux/amd64,linux/arm64 \
+          --build-arg "VERSION=$CI_COMMIT_SHORT_SHA" \
+          --tag "$SHA_IMAGE" \
+          --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG" \
+          --push \
+          .
+      else
+        docker buildx build \
+          --pull \
+          --platform linux/amd64,linux/arm64 \
+          --build-arg "VERSION=$CI_COMMIT_SHORT_SHA" \
+          --tag "$SHA_IMAGE" \
+          --tag "$CI_REGISTRY_IMAGE:latest" \
+          --push \
+          .
+      fi
+  after_script:
+    - docker buildx rm multicloud-builder || true
+    - docker context rm --force multicloud-dind || true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_TAG'

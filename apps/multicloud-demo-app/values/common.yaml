@@ -1,0 +1,37 @@
+replicaCount: 2
+
+image:
+  repository: registry.gitlab.com/skcloud2007/multicloud-demo-app
+  pullPolicy: IfNotPresent
+  tag: "f52de391"
+
+imagePullSecrets:
+  - name: gitlab-registry
+
+environment: prod
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: /metrics
+  prometheus.io/port: "8080"
+
+podLabels:
+  platform.local/team: platform-engineering
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 300m
+    memory: 192Mi
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: false

@@ -15,6 +15,9 @@ kubeScheduler:
 kubeProxy:
   enabled: false
 
+coreDns:
+  enabled: false
+
 grafana:
   enabled: true
 

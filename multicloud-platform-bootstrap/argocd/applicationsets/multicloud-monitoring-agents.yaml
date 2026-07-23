@@ -1,0 +1,103 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: multicloud-monitoring-agents
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+
+  generators:
+    - list:
+        elements:
+          - cluster: eks-dev
+            cloud: aws
+            cloudDisplay: Amazon Web Services (EKS)
+            environment: dev
+            environmentDisplay: Development
+          - cluster: eks-prod
+            cloud: aws
+            cloudDisplay: Amazon Web Services (EKS)
+            environment: prod
+            environmentDisplay: Production
+          - cluster: aks-dev
+            cloud: azure
+            cloudDisplay: Microsoft Azure (AKS)
+            environment: dev
+            environmentDisplay: Development
+          - cluster: aks-prod
+            cloud: azure
+            cloudDisplay: Microsoft Azure (AKS)
+            environment: prod
+            environmentDisplay: Production
+          - cluster: gke-dev
+            cloud: gcp
+            cloudDisplay: Google Cloud (GKE)
+            environment: dev
+            environmentDisplay: Development
+          - cluster: gke-prod
+            cloud: gcp
+            cloudDisplay: Google Cloud (GKE)
+            environment: prod
+            environmentDisplay: Production
+
+  template:
+    metadata:
+      name: '{{.cluster}}-monitoring-agent'
+      labels:
+        platform.local/application: monitoring-agent
+        platform.local/cloud: '{{.cloud}}'
+        platform.local/environment: '{{.environment}}'
+        platform.local/cluster: '{{.cluster}}'
+
+    spec:
+      project: multicloud-platform
+
+      source:
+        repoURL: git@gitlab.com:skcloud2007/multicloud-helm-charts.git
+        targetRevision: main
+        path: charts/multicloud-monitoring-agent
+        helm:
+          releaseName: monitoring-agent
+          parameters:
+            - name: cluster.name
+              value: '{{.cluster}}'
+            - name: cluster.cloud
+              value: '{{.cloud}}'
+            - name: cluster.environment
+              value: '{{.environment}}'
+            - name: central.ip
+              value: '172.18.0.12'
+
+      destination:
+        name: '{{.cluster}}'
+        namespace: monitoring-agent
+
+      info:
+        - name: Cloud Provider
+          value: '{{.cloudDisplay}}'
+        - name: Environment
+          value: '{{.environmentDisplay}}'
+        - name: Target Cluster
+          value: '{{.cluster}}'
+        - name: Metrics Destination
+          value: 'Central Prometheus'
+
+      syncPolicy:
+        automated:
+          enabled: true
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - PruneLast=true
+        managedNamespaceMetadata:
+          labels:
+            platform.local/component: monitoring-agent
+            platform.local/cloud: '{{.cloud}}'
+            platform.local/environment: '{{.environment}}'
+            platform.local/cluster: '{{.cluster}}'
+
+      revisionHistoryLimit: 5

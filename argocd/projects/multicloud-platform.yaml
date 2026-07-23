@@ -9,10 +9,23 @@ spec:
   sourceRepos:
     - https://prometheus-community.github.io/helm-charts
     - git@gitlab.com:skcloud2007/multicloud-platform-bootstrap.git
+    - git@gitlab.com:skcloud2007/multicloud-helm-charts.git
 
   destinations:
     - namespace: monitoring
       server: https://kubernetes.default.svc
+    - namespace: monitoring-agent
+      name: eks-dev
+    - namespace: monitoring-agent
+      name: eks-prod
+    - namespace: monitoring-agent
+      name: aks-dev
+    - namespace: monitoring-agent
+      name: aks-prod
+    - namespace: monitoring-agent
+      name: gke-dev
+    - namespace: monitoring-agent
+      name: gke-prod
 
   clusterResourceWhitelist:
     - group: "*"
@@ -24,3 +37,10 @@ spec:
 
   orphanedResources:
     warn: true
+    ignore:
+      - group: ""
+        kind: Secret
+        name: central-monitoring-admission
+      - group: ""
+        kind: Secret
+        name: central-monitoring-grafana-admin

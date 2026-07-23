@@ -45,6 +45,12 @@ kube-state-metrics:
 prometheus-node-exporter:
   enabled: true
   fullnameOverride: monitoring-agent-node-exporter
+
+  # Floci k3s nodes run inside Docker containers. Their root mount does not
+  # support the HostToContainer propagation used on VM or physical nodes.
+  hostRootFsMount:
+    enabled: false
+
   resources:
     requests:
       cpu: 20m

@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: central-monitoring
+  namespace: argocd
+  labels:
+    platform.local/component: observability
+    platform.local/environment: management
+spec:
+  project: multicloud-platform
+
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 87.19.0
+      helm:
+        releaseName: central-monitoring
+        valueFiles:
+          - $values/observability/central/kube-prometheus-stack-values.yaml
+
+    - repoURL: git@gitlab.com:skcloud2007/multicloud-platform-bootstrap.git
+      targetRevision: main
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - PruneLast=true
+    managedNamespaceMetadata:
+      labels:
+        platform.local/component: observability
+        platform.local/environment: management
+
+  revisionHistoryLimit: 5

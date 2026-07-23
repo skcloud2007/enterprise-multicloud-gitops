@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: multicloud-platform
+  namespace: argocd
+spec:
+  description: Central services for the multi-cloud platform
+
+  sourceRepos:
+    - https://prometheus-community.github.io/helm-charts
+    - git@gitlab.com:skcloud2007/multicloud-platform-bootstrap.git
+
+  destinations:
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  orphanedResources:
+    warn: true

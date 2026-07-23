@@ -1,0 +1,54 @@
+cluster:
+  name: ""
+  cloud: ""
+  environment: ""
+
+central:
+  ip: "172.18.0.12"
+  serviceName: central-prometheus-receiver
+  servicePort: 9090
+  targetPort: 30909
+
+image:
+  repository: quay.io/prometheus/prometheus
+  tag: "v3.13.1-distroless"
+  pullPolicy: IfNotPresent
+
+agent:
+  scrapeInterval: 30s
+  evaluationInterval: 30s
+  walRetention: 2h
+  logLevel: info
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 192Mi
+  limits:
+    cpu: 500m
+    memory: 384Mi
+
+kube-state-metrics:
+  enabled: true
+  fullnameOverride: monitoring-agent-kube-state-metrics
+  prometheus:
+    monitor:
+      enabled: false
+  resources:
+    requests:
+      cpu: 30m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 192Mi
+
+prometheus-node-exporter:
+  enabled: true
+  fullnameOverride: monitoring-agent-node-exporter
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi

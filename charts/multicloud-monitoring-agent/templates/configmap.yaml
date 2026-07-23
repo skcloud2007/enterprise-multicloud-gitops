@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "multicloud-monitoring-agent.fullname" . }}
+  labels:
+    {{- include "multicloud-monitoring-agent.labels" . | nindent 4 }}
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: {{ .Values.agent.scrapeInterval }}
+      evaluation_interval: {{ .Values.agent.evaluationInterval }}
+      external_labels:
+        cluster: {{ required "cluster.name is required" .Values.cluster.name | quote }}
+        cloud: {{ required "cluster.cloud is required" .Values.cluster.cloud | quote }}
+        environment: {{ required "cluster.environment is required" .Values.cluster.environment | quote }}
+
+    remote_write:
+      - url: http://{{ .Values.central.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.central.servicePort }}/api/v1/write
+        queue_config:
+          capacity: 2500
+          min_shards: 1
+          max_shards: 4
+          max_samples_per_send: 500
+          batch_send_deadline: 5s
+        metadata_config:
+          send: true
+
+    scrape_configs:
+      - job_name: prometheus-agent
+        static_configs:
+          - targets:
+              - 127.0.0.1:9090
+
+      - job_name: kube-state-metrics
+        static_configs:
+          - targets:
+              - monitoring-agent-kube-state-metrics:8080
+
+      - job_name: node-exporter
+        static_configs:
+          - targets:
+              - monitoring-agent-node-exporter:9100
+
+      - job_name: kubernetes-apiservers
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        authorization:
+          credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        relabel_configs:
+          - source_labels:
+              - __meta_kubernetes_namespace
+              - __meta_kubernetes_service_name
+              - __meta_kubernetes_endpoint_port_name
+            action: keep
+            regex: default;kubernetes;https
+
+      - job_name: kubernetes-nodes-cadvisor
+        scheme: https
+        authorization:
+          credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels:
+              - __meta_kubernetes_node_name
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+
+      - job_name: annotated-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels:
+              - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+            action: keep
+            regex: "true"
+          - source_labels:
+              - __meta_kubernetes_pod_annotation_prometheus_io_path
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels:
+              - __address__
+              - __meta_kubernetes_pod_annotation_prometheus_io_port
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels:
+              - __meta_kubernetes_namespace
+            target_label: namespace
+          - source_labels:
+              - __meta_kubernetes_pod_name
+            target_label: pod

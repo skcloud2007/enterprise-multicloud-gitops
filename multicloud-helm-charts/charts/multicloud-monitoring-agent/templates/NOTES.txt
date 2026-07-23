@@ -1,0 +1,2 @@
+Prometheus Agent is forwarding {{ .Values.cluster.name }} metrics to:
+http://{{ .Values.central.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.central.servicePort }}/api/v1/write

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: multicloud-monitoring-agent
+description: Lightweight Prometheus agent for the local multi-cloud platform
+type: application
+version: 0.1.0
+appVersion: "v3.13.1-distroless"
+dependencies:
+  - name: kube-state-metrics
+    version: "8.0.0"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: kube-state-metrics.enabled
+  - name: prometheus-node-exporter
+    version: "4.56.1"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: prometheus-node-exporter.enabled

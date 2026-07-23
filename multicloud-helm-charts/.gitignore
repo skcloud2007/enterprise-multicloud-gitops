@@ -3,3 +3,6 @@
 .env.*
 *.tgz
 charts/*.lock
+
+# Downloaded Helm dependencies
+charts/*/charts/*.tgz

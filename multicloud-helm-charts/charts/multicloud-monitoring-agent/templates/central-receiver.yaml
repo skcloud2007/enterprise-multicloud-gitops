@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.central.serviceName }}
+  labels:
+    {{- include "multicloud-monitoring-agent.labels" . | nindent 4 }}
+spec:
+  ports:
+    - name: remote-write
+      protocol: TCP
+      port: {{ .Values.central.servicePort }}
+      targetPort: {{ .Values.central.targetPort }}
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: {{ .Values.central.serviceName }}
+  labels:
+    kubernetes.io/service-name: {{ .Values.central.serviceName }}
+    endpointslice.kubernetes.io/managed-by: multicloud-monitoring-agent
+    {{- include "multicloud-monitoring-agent.labels" . | nindent 4 }}
+addressType: IPv4
+ports:
+  - name: remote-write
+    protocol: TCP
+    port: {{ .Values.central.targetPort }}
+endpoints:
+  - addresses:
+      - {{ required "central.ip is required" .Values.central.ip | quote }}
+    conditions:
+      ready: true

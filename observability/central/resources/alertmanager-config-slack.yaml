@@ -27,18 +27,73 @@ spec:
         - apiURL:
             name: central-monitoring-slack-webhook
             key: api-url
+
           channel: "#skm_alerts"
           sendResolved: true
           username: Multi-Cloud Alertmanager
           iconEmoji: ":satellite:"
-          color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-          title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+
+          fallback: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }} on {{ .CommonLabels.cluster }}'
+
+          color: '{{ if eq .Status "resolved" }}good{{ else if eq .CommonLabels.severity "critical" }}danger{{ else }}warning{{ end }}'
+
+          pretext: '{{ if eq .Status "resolved" }}✅ *Kubernetes Alert Resolved*{{ else }}🚨 *Kubernetes Alert Firing*{{ end }}'
+
+          title: '{{ .CommonLabels.alertname }} is {{ .Status | toUpper }}'
+
+          titleLink: "https://localhost:8080/applications/central-monitoring"
+
           text: |-
-            {{ range .Alerts }}
-            *Summary:* {{ .Annotations.summary }}
-            *Description:* {{ .Annotations.description }}
-            *Cluster:* {{ .Labels.cluster }}
-            *Cloud:* {{ .Labels.cloud }}
-            *Environment:* {{ .Labels.environment }}
-            *Severity:* {{ .Labels.severity }}
-            {{ end }}
+            *{{ .CommonAnnotations.summary }}*
+
+            _{{ .CommonAnnotations.description }}_
+
+          fields:
+            - title: Cloud Platform
+              value: '{{ if eq .CommonLabels.cloud "aws" }}🟠 AWS / EKS{{ else if eq .CommonLabels.cloud "azure" }}🔵 Azure / AKS{{ else if eq .CommonLabels.cloud "gcp" }}🔷 Google Cloud / GKE{{ else }}🌐 Central Platform{{ end }}'
+              short: true
+
+            - title: Cluster
+              value: "`{{ .CommonLabels.cluster }}`"
+              short: true
+
+            - title: Environment
+              value: "`{{ .CommonLabels.environment | toUpper }}`"
+              short: true
+
+            - title: Severity
+              value: '{{ if eq .CommonLabels.severity "critical" }}🔴 `CRITICAL`{{ else if eq .CommonLabels.severity "warning" }}🟠 `WARNING`{{ else }}🔵 `{{ .CommonLabels.severity | toUpper }}`{{ end }}'
+              short: true
+
+            - title: Team
+              value: "`{{ .CommonLabels.team }}`"
+              short: true
+
+            - title: Status
+              value: '{{ if eq .Status "resolved" }}✅ `RESOLVED`{{ else }}🚨 `FIRING`{{ end }}'
+              short: true
+
+          actions:
+            - type: button
+              text: Open Grafana
+              style: primary
+              url: "http://localhost:3000/d/multicloud-central-overview/multi-cloud-central-overview"
+
+            - type: button
+              text: Open Prometheus
+              url: "http://localhost:9090/alerts"
+
+            - type: button
+              text: Open Alertmanager
+              url: "http://localhost:9093/#/alerts"
+
+            - type: button
+              text: Open Argo CD
+              url: "https://localhost:8080/applications/central-monitoring"
+
+          footer: "Prometheus Alertmanager • EKS + AKS + GKE • GitOps Managed"
+
+          mrkdwnIn:
+            - pretext
+            - text
+            - fields

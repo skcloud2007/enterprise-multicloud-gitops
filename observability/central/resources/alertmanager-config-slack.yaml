@@ -1,0 +1,44 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: central-monitoring-slack
+  namespace: monitoring
+  labels:
+    platform.local/alertmanager: central-monitoring
+spec:
+  route:
+    receiver: slack-skm-alerts
+    groupBy:
+      - alertname
+      - cluster
+      - cloud
+      - environment
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+    matchers:
+      - name: team
+        value: platform
+        matchType: "="
+
+  receivers:
+    - name: slack-skm-alerts
+      slackConfigs:
+        - apiURL:
+            name: central-monitoring-slack-webhook
+            key: api-url
+          channel: "#skm_alerts"
+          sendResolved: true
+          username: Multi-Cloud Alertmanager
+          iconEmoji: ":satellite:"
+          color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+          title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+          text: |-
+            {{ range .Alerts }}
+            *Summary:* {{ .Annotations.summary }}
+            *Description:* {{ .Annotations.description }}
+            *Cluster:* {{ .Labels.cluster }}
+            *Cloud:* {{ .Labels.cloud }}
+            *Environment:* {{ .Labels.environment }}
+            *Severity:* {{ .Labels.severity }}
+            {{ end }}

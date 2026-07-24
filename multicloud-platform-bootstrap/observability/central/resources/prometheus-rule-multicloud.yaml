@@ -1,0 +1,153 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: central-monitoring-multicloud-alerts
+  namespace: monitoring
+  labels:
+    release: central-monitoring
+    role: alert-rules
+    app.kubernetes.io/name: multicloud-alerts
+    app.kubernetes.io/part-of: central-monitoring
+spec:
+  groups:
+    - name: multicloud.availability
+      interval: 30s
+      rules:
+        - alert: MultiCloudClusterMissing
+          expr: |
+            absent(up{cluster="eks-dev",cloud="aws",environment="dev"})
+            or absent(up{cluster="eks-prod",cloud="aws",environment="prod"})
+            or absent(up{cluster="aks-dev",cloud="azure",environment="dev"})
+            or absent(up{cluster="aks-prod",cloud="azure",environment="prod"})
+            or absent(up{cluster="gke-dev",cloud="gcp",environment="dev"})
+            or absent(up{cluster="gke-prod",cloud="gcp",environment="prod"})
+          for: 10m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: 'Cluster {{ $labels.cluster }} stopped reporting'
+            description: >-
+              No monitoring samples have been received from
+              {{ $labels.cluster }} in {{ $labels.cloud }}
+              for more than 10 minutes.
+
+        - alert: MultiCloudScrapeTargetDown
+          expr: |
+            up{
+              cluster=~"(eks|aks|gke)-(dev|prod)"
+            } == 0
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: 'Target down on {{ $labels.cluster }}'
+            description: >-
+              Prometheus target {{ $labels.job }}/{{ $labels.instance }}
+              on {{ $labels.cluster }} has been unavailable
+              for more than 5 minutes.
+
+        - alert: MultiCloudNodeNotReady
+          expr: |
+            kube_node_status_condition{
+              cluster=~"(eks|aks|gke)-(dev|prod)",
+              condition="Ready",
+              status="true"
+            } == 0
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: 'Node {{ $labels.node }} is not Ready'
+            description: >-
+              Node {{ $labels.node }} in cluster
+              {{ $labels.cluster }} has not been Ready
+              for more than 5 minutes.
+
+    - name: multicloud.capacity
+      interval: 30s
+      rules:
+        - alert: MultiCloudHighNodeCPU
+          expr: |
+            (
+              100 -
+              avg by (cluster, cloud, environment) (
+                rate(
+                  node_cpu_seconds_total{
+                    cluster=~"(eks|aks|gke)-(dev|prod)",
+                    mode="idle"
+                  }[5m]
+                )
+              ) * 100
+            ) > 85
+          for: 10m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: 'High CPU utilization on {{ $labels.cluster }}'
+            description: >-
+              Average node CPU utilization on
+              {{ $labels.cluster }} has exceeded 85 percent
+              for more than 10 minutes.
+
+        - alert: MultiCloudHighNodeMemory
+          expr: |
+            (
+              100 * (
+                1 -
+                sum by (cluster, cloud, environment) (
+                  node_memory_MemAvailable_bytes{
+                    cluster=~"(eks|aks|gke)-(dev|prod)"
+                  }
+                )
+                /
+                sum by (cluster, cloud, environment) (
+                  node_memory_MemTotal_bytes{
+                    cluster=~"(eks|aks|gke)-(dev|prod)"
+                  }
+                )
+              )
+            ) > 90
+          for: 10m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: 'High memory utilization on {{ $labels.cluster }}'
+            description: >-
+              Average node memory utilization on
+              {{ $labels.cluster }} has exceeded 90 percent
+              for more than 10 minutes.
+
+    - name: multicloud.workloads
+      interval: 30s
+      rules:
+        - alert: MultiCloudContainerRestarting
+          expr: |
+            sum by (
+              cluster,
+              cloud,
+              environment,
+              namespace,
+              pod,
+              container
+            ) (
+              increase(
+                kube_pod_container_status_restarts_total{
+                  cluster=~"(eks|aks|gke)-(dev|prod)"
+                }[15m]
+              )
+            ) > 3
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: 'Container repeatedly restarting on {{ $labels.cluster }}'
+            description: >-
+              Container {{ $labels.container }} in pod
+              {{ $labels.namespace }}/{{ $labels.pod }}
+              restarted more than three times within 15 minutes.

@@ -22,6 +22,11 @@ spec:
       targetRevision: main
       ref: values
 
+    - repoURL: git@gitlab.com:skcloud2007/multicloud-platform-bootstrap.git
+      targetRevision: main
+      path: observability/central/resources
+      directory:
+        recurse: true
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring

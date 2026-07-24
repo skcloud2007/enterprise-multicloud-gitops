@@ -84,6 +84,19 @@ alertmanager:
   enabled: true
 
   alertmanagerSpec:
+    alertmanagerConfigSelector:
+      matchLabels:
+        platform.local/alertmanager: central-monitoring
+
+    alertmanagerConfigNamespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: monitoring
+
+    # Central rules describe remote EKS, AKS and GKE clusters and do not
+    # always carry the local monitoring namespace label.
+    alertmanagerConfigMatcherStrategy:
+      type: None
+
     resources:
       requests:
         cpu: 50m

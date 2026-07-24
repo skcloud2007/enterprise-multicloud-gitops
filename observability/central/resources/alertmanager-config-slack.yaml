@@ -97,3 +97,16 @@ spec:
             - pretext
             - text
             - fields
+
+
+      webhookConfigs:
+        - url: "http://ai-rca.monitoring.svc.cluster.local:8080/api/v1/alerts"
+          sendResolved: false
+          timeout: 10s
+          maxAlerts: 10
+          httpConfig:
+            authorization:
+              type: Bearer
+              credentials:
+                name: ai-rca-webhook-auth
+                key: token
